@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from shifts import get_shifts
+from shifts import get_shifts, unclosed_shifts
 from tg import TelegramBot
 from config import token, chatid
 
@@ -8,20 +8,27 @@ def main():
     # Создаем экземпляры классов API
     shifts_api = get_shifts()
     telegram_api = TelegramBot(token=token, chat_id=chatid)
-    # db_api = get_shifts_info()
-    # Получаем данные о сменах
+
     sum_by_shop = {}
     for shift in shifts_api:
         shop_index = shift['shop_index']
-        sub_total = shift['sub_total']
+        sum_by_checks = shift['sum_by_checks']
         if shop_index in sum_by_shop:
-            sum_by_shop[shop_index] += sub_total
+            sum_by_shop[shop_index] += sum_by_checks
         else:
-            sum_by_shop[shop_index] = sub_total
-    for shop_index, fiscal_sum in sum_by_shop.items():
-        print(f'{shop_index}: {fiscal_sum}')
+            sum_by_shop[shop_index] = sum_by_checks
+
+    for shop_index, revenue in sum_by_shop.items():
+        print(f'Магазин № {shop_index}: {revenue:,.2f}'.replace(',', ' '))
+        if shop_index in unclosed_shifts().keys():
+            unclosed = unclosed_shifts()[shop_index]
+            print(f'В Магазине не закрыта смена на кассе номер {" и ".join(map(str, unclosed))}')
+
     total = sum(sum_by_shop.values())
-    print(f'Total sum: {total}')
+    if not unclosed_shifts():
+        print(f'Во всех магазинах смены закрыты')
+    print(f'Total sum: {total:,.2f}'.replace(',', ' '))
+
     # Проверяем наличие незакрытых смен
     # unclosed_shifts = shifts_api.check_unclosed_shifts(shifts)
 

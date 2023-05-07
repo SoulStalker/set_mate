@@ -18,14 +18,14 @@ def get_shifts():
     today_end = datetime.combine(date.today(), datetime.max.time())
     # выполнение запроса к базе данных
     cur.execute('''
-                Select os.shopindex, os.cashnum, os.numshift, os.operday, os.state, os.inn,
-                        round(sum(op.checksumstart)/100, 2) as sub_total,
-                        round(sum(op.checksumend)/100, 2) as total
-                        from od_shift os 
-                        join od_purchase op on os.id = op.id_shift 
-                        where os.operday =%s and op.checkstatus = 0
-                        group by os.cashnum, os.shopindex, os.numshift, os.operday, os.state, os.inn 
-                        order by os.shopindex, os.cashnum 
+                SELECT os.shopindex, os.cashnum, os.numshift, os.operday, os.state, os.inn,
+                      count(case when op.cash_operation = 0 then op.checksumstart else null end) as check_count,
+                      sum(case when op.cash_operation = 0 then op.checksumend else -op.checksumend end)/100 as sum_by_checks
+                            FROM od_shift os
+                            JOIN od_purchase op ON os.id = op.id_shift
+                            WHERE os.operday = %s and op.checkstatus = 0
+                            GROUP BY os.cashnum, os.shopindex, os.numshift, os.operday, os.state, os.inn
+                            ORDER BY os.shopindex, os.cashnum
                 ''', (date.today(),))
     # получение результатов запроса
     rows = cur.fetchall()
@@ -35,11 +35,21 @@ def get_shifts():
     shifts_today = []
     for row in rows:
         shift = {'shop_index': row[0], 'cash_num': row[1], 'num_shift': row[2], 'operation_day': row[3],
-                 'state': row[4], 'inn': row[5], 'sub_total': row[6], 'total': row[7]}
+                 'state': row[4], 'inn': row[5], 'checks_count': row[6], 'sum_by_checks': row[7]}
         shifts_today.append(shift)
 
     return shifts_today
 
 
+def unclosed_shifts():
+    unclosed = {}
+    for shift in get_shifts():
+        if not shift['state']:
+            unclosed.setdefault(shift['shop_index'], set()).add(shift['cash_num'])
+
+    return unclosed
+
+
 if __name__ == '__main__':
     pprint(get_shifts())
+    print(unclosed_shifts())
