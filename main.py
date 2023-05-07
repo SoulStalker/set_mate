@@ -9,20 +9,19 @@ def main():
     shifts_api = get_shifts()
     telegram_api = TelegramBot(token=token, chat_id=chatid)
     # db_api = get_shifts_info()
-
-    # Получаем дату начала и конца дня для запроса данных о сменах
-    now = datetime.now()
-    date_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    date_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
-
     # Получаем данные о сменах
-    shifts = []
+    sum_by_shop = {}
     for shift in shifts_api:
-        shift_date = shift[8]
-        if shift_date:
-            if date_start < shift_date < date_end:
-                shifts.append(shift)
-    print(*shifts)
+        shop_index = shift['shop_index']
+        sub_total = shift['sub_total']
+        if shop_index in sum_by_shop:
+            sum_by_shop[shop_index] += sub_total
+        else:
+            sum_by_shop[shop_index] = sub_total
+    for shop_index, fiscal_sum in sum_by_shop.items():
+        print(f'{shop_index}: {fiscal_sum}')
+    total = sum(sum_by_shop.values())
+    print(f'Total sum: {total}')
     # Проверяем наличие незакрытых смен
     # unclosed_shifts = shifts_api.check_unclosed_shifts(shifts)
 
