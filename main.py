@@ -5,7 +5,6 @@ from config import token, chat_id, se, legals
 
 
 def main():
-    # Создаем экземпляры классов API
     shifts_api = get_shifts()
     telegram_api = TelegramBot(token=token, chat_id=chat_id)
 
@@ -25,12 +24,12 @@ def main():
                   f'Чеки: {revenue["checks_count"]}\n' \
                   f'Оборот: {revenue["sum_by_checks"]:,.2f} '.replace(',', ' ')
         print(message)
-        # telegram_api.send_message(message)
+        telegram_api.send_message(message)
 
         if shop_index in unclosed_shifts().keys():
             unclosed = unclosed_shifts()[shop_index]
             message = f'{se[shop_index]} \n не закрыта смена на кассе номер {" и ".join(map(str, unclosed))}'
-            # telegram_api.send_message(message)
+            telegram_api.send_message(message)
             print(message)
 
     total_sum = 0
@@ -40,14 +39,14 @@ def main():
         total_sum += values['sum_by_checks']
         total_count += values['checks_count']
 
-    # if not unclosed_shifts():
-        # telegram_api.send_message(f'Во всех магазинах смены закрыты')
+    if not unclosed_shifts():
+        telegram_api.send_message(f'Во всех магазинах смены закрыты')
 
     message = f'Суммарный отчет за сегодня:\n' \
               f'Чеки: {round(total_count)}\n' \
               f'Оборот: {total_sum:,.2f}'.replace(',', ' ')
     print(message)
-    # telegram_api.send_message(message)
+    telegram_api.send_message(message)
 
     for shop_cash, this_shift in near_shifts(get_shifts()).items():
         shop, cash = shop_cash
@@ -59,7 +58,7 @@ def main():
             nears += (m,)
         message = f'{se[shop]}, касса номер {cash} близкие номера смен:\n' \
                   f'{" и ".join(nears)}\nрекомендуется переоткрыть смены на основной фирме'
-        # telegram_api.send_message(message)
+        telegram_api.send_message(message)
         print(message)
 
 

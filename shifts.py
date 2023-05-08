@@ -1,17 +1,11 @@
 import psycopg2
-from config import report_day
+
+from config import report_day, dsn
 
 
 def get_shifts():
-    # установка соединения с базой данных
-    conn = psycopg2.connect(
-        host="192.168.10.231",
-        database="set_operday",
-        user="postgres",
-        password="postgres"
-    )
+    conn = psycopg2.connect(**dsn)
     cur = conn.cursor()
-    # выполнение запроса к базе данных
     cur.execute('''
                 SELECT os.shopindex, os.cashnum, os.numshift, os.operday, os.state, os.inn,
                       count(case when op.cash_operation = 0 then op.checksumstart else null end) as check_count,
@@ -22,11 +16,9 @@ def get_shifts():
                             GROUP BY os.cashnum, os.shopindex, os.numshift, os.operday, os.state, os.inn
                             ORDER BY os.shopindex, os.cashnum
                 ''', (report_day,))
-    # получение результатов запроса
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    # преобразование результатов запроса в список словарей
     shifts_today = []
     for row in rows:
         shift = {'shop_index': row[0], 'cash_num': row[1], 'num_shift': row[2], 'operation_day': row[3],
