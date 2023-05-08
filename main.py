@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from shifts import get_shifts, unclosed_shifts
+from shifts import get_shifts, unclosed_shifts, near_shifts
 from tg import TelegramBot
-from config import token, chat_id, se
+from config import token, chat_id, se, legals
 
 
 def main():
@@ -19,23 +19,38 @@ def main():
             sum_by_shop[shop_index] = sum_by_checks
 
     for shop_index, revenue in sum_by_shop.items():
-        print(f'Магазин {se[shop_index]} : {revenue:,.2f}'.replace(',', ' '))
+        message = f'Магазин {se[shop_index]} : {revenue:,.2f}'.replace(',', ' ')
+        print(message)
+        telegram_api.send_message(message)
 
         if shop_index in unclosed_shifts().keys():
             unclosed = unclosed_shifts()[shop_index]
             message = f'{se[shop_index]} \n не закрыта смена на кассе номер {" и ".join(map(str, unclosed))}'
-            # telegram_api.send_message(message)
+            telegram_api.send_message(message)
             print(message)
 
     total = sum(sum_by_shop.values())
     if not unclosed_shifts():
         telegram_api.send_message(f'Во всех магазинах смены закрыты')
 
+
     message = f'Выручка по магазинам за сегодня:\n {total:,.2f}'.replace(',', ' ')
     print(message)
     # for store, (revenue, checks_count) in revenue_by_store.items():
     #     message += f"{store}: {revenue} руб. ({checks_count} чеков)\n"
-    # telegram_api.send_message(message)
+    telegram_api.send_message(message)
+    for shop_cash, this_shift in near_shifts(get_shifts()).items():
+        shop, cash = shop_cash
+        shifts = this_shift
+        nears = ()
+        for shift in shifts:
+            for k, v in shift.items():
+                m = f'Смена {k} на фирме {legals[v]}'
+            nears += (m,)
+        message = f'{se[shop]}, касса номер {cash} близкие номера смен:\n' \
+                  f'{" и ".join(nears)}\nрекомендуется переоткрыть смены на основной фирме'
+        telegram_api.send_message(message)
+        print(message)
 
 
 if __name__ == "__main__":

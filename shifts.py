@@ -1,7 +1,5 @@
-from datetime import datetime, date
-from pprint import pprint
-
 import psycopg2
+from config import report_day
 
 
 def get_shifts():
@@ -13,20 +11,17 @@ def get_shifts():
         password="postgres"
     )
     cur = conn.cursor()
-    # получение даты начала и конца дня
-    today_start = datetime.combine(date.today(), datetime.min.time())
-    today_end = datetime.combine(date.today(), datetime.max.time())
     # выполнение запроса к базе данных
     cur.execute('''
                 SELECT os.shopindex, os.cashnum, os.numshift, os.operday, os.state, os.inn,
                       count(case when op.cash_operation = 0 then op.checksumstart else null end) as check_count,
-                      sum(case when op.cash_operation = 0 then op.checksumend else -op.checksumend end)/100 as sum_by_checks
+                      sum(case when op.operationtype then op.checksumend else -op.checksumend end)/100 as sum_by_checks
                             FROM od_shift os
                             JOIN od_purchase op ON os.id = op.id_shift
                             WHERE os.operday = %s and op.checkstatus = 0
                             GROUP BY os.cashnum, os.shopindex, os.numshift, os.operday, os.state, os.inn
                             ORDER BY os.shopindex, os.cashnum
-                ''', (date.today(),))
+                ''', (report_day,))
     # получение результатов запроса
     rows = cur.fetchall()
     cur.close()
@@ -50,6 +45,22 @@ def unclosed_shifts():
     return unclosed
 
 
+def near_shifts(shift_rows):
+    near_shifts_list = []
+    for i in range(len(shift_rows)):
+        for j in range(i + 1, len(shift_rows)):
+            if (shift_rows[i]['shop_index'] == shift_rows[j]['shop_index'] and
+                    shift_rows[i]['cash_num'] == shift_rows[j]['cash_num'] and
+                    abs(shift_rows[i]['num_shift'] - shift_rows[j]['num_shift']) <= 5):
+                near_shifts_list.append(shift_rows[i])
+                near_shifts_list.append(shift_rows[j])
+    cleared_dict = {}
+    for near in near_shifts_list:
+        cleared_dict.setdefault((near['shop_index'], near['cash_num']), []).append({near['num_shift']: near['inn']})
+
+    return cleared_dict
+
+
 if __name__ == '__main__':
-    pprint(get_shifts())
-    print(unclosed_shifts())
+    print(get_shifts())
+    print(near_shifts(get_shifts()))
