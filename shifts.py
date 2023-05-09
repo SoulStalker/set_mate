@@ -4,6 +4,10 @@ from config import report_day, dsn
 
 
 def get_shifts():
+    """
+    Функция получает данные о сменах из базы данных.
+    :return: list of dicts
+    """
     conn = psycopg2.connect(**dsn)
     cur = conn.cursor()
     cur.execute('''
@@ -29,6 +33,10 @@ def get_shifts():
 
 
 def unclosed_shifts():
+    """
+    Функция возвращает список незакрытых смен.
+    :return: dict
+    """
     unclosed = {}
     for shift in get_shifts():
         if not shift['state']:
@@ -38,6 +46,12 @@ def unclosed_shifts():
 
 
 def near_shifts(shift_rows):
+    """
+    Функция принимает список смен и возвращает словарь со сменами,
+    у которых номера в разрезе кассы близки друг к другу.
+    :param shift_rows: список смен
+    :return: dict
+    """
     near_shifts_list = []
     for i in range(len(shift_rows)):
         for j in range(i + 1, len(shift_rows)):
@@ -54,5 +68,8 @@ def near_shifts(shift_rows):
 
 
 if __name__ == '__main__':
+    """
+    Проверочный вывод.
+    """
     print(get_shifts())
     print(near_shifts(get_shifts()))

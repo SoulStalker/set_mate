@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from shifts import get_shifts, unclosed_shifts, near_shifts
 from tg import TelegramBot
 from config import token, chat_id, se, legals
@@ -22,7 +21,7 @@ def main():
     for shop_index, revenue in sum_by_shop.items():
         message = f'Отчет за сегодня {se[shop_index]}:\n' \
                   f'Чеки: {revenue["checks_count"]}\n' \
-                  f'Оборот: {revenue["sum_by_checks"]:,.2f} '.replace(',', ' ')
+                  f'Оборот: {round(revenue["sum_by_checks"], 0):,} руб.'.replace(',', ' ')
         print(message)
         telegram_api.send_message(message)
 
@@ -44,7 +43,7 @@ def main():
 
     message = f'Суммарный отчет за сегодня:\n' \
               f'Чеки: {round(total_count)}\n' \
-              f'Оборот: {total_sum:,.2f}'.replace(',', ' ')
+              f'Оборот: {round(total_sum, 0):,} руб.'.replace(',', ' ')
     print(message)
     telegram_api.send_message(message)
 
